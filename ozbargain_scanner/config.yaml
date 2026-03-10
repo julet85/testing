@@ -1,0 +1,50 @@
+name: OzBargain Deal Scanner
+version: "1.0.0"
+slug: ozbargain_scanner
+description: >-
+  Scans OzBargain for deals matching your shopping list and sends Home
+  Assistant notifications. Supports smart keyword expansion, deal scoring,
+  and a built-in shopping list manager accessible via the HA dashboard.
+url: "https://github.com/home-assistant/addons"
+arch:
+  - aarch64
+  - amd64
+  - armhf
+  - armv7
+  - i386
+init: false
+ingress: true
+ingress_port: 8099
+panel_icon: mdi:tag-search
+panel_title: OzBargain Scanner
+homeassistant_api: true
+map:
+  - data:rw
+
+options:
+  check_interval_minutes: 30
+  min_upvotes: 5
+  min_discount_percent: 0
+  notify_service: "notify.notify"
+  use_ha_shopping_list: true
+  ha_todo_entity: "todo.shopping_list"
+  custom_shopping_list: []
+  smart_keyword_expansion: true
+  notification_cooldown_hours: 24
+  max_deals_per_notification: 5
+  deal_score_threshold: 0
+  excluded_keywords: []
+
+schema:
+  check_interval_minutes: "int(5,1440)"
+  min_upvotes: "int(0,1000)"
+  min_discount_percent: "int(0,100)"
+  notify_service: str
+  use_ha_shopping_list: bool
+  ha_todo_entity: str
+  custom_shopping_list: ["str?"]
+  smart_keyword_expansion: bool
+  notification_cooldown_hours: "int(1,168)"
+  max_deals_per_notification: "int(1,20)"
+  deal_score_threshold: "int(0,1000)"
+  excluded_keywords: ["str?"]
