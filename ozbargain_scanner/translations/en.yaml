@@ -1,0 +1,39 @@
+configuration:
+  check_interval_minutes:
+    name: Check Interval (minutes)
+    description: How often to scan OzBargain for new deals (5–1440 minutes).
+  min_upvotes:
+    name: Minimum Upvotes
+    description: Only notify for deals with at least this many upvotes.
+  min_discount_percent:
+    name: Minimum Discount %
+    description: Only notify for deals with at least this percentage discount.
+  notify_service:
+    name: Notification Service
+    description: "Home Assistant notify service to use (e.g. notify.mobile_app_myphone)."
+  use_ha_shopping_list:
+    name: Use HA Shopping List
+    description: Automatically import items from your Home Assistant To-Do/Shopping List.
+  ha_todo_entity:
+    name: HA Todo Entity
+    description: "Entity ID of your HA shopping/todo list (e.g. todo.shopping_list)."
+  custom_shopping_list:
+    name: Custom Shopping List
+    description: Additional items to scan for, in addition to your HA shopping list.
+  smart_keyword_expansion:
+    name: Smart Keyword Expansion
+    description: >-
+      Automatically expand keywords with synonyms and brand variants for better
+      deal matching (e.g. "TV" also matches "OLED", "QLED", "4K television").
+  notification_cooldown_hours:
+    name: Notification Cooldown (hours)
+    description: Minimum hours between repeat notifications for the same deal.
+  max_deals_per_notification:
+    name: Max Deals Per Notification
+    description: Maximum number of deals to bundle in a single notification.
+  deal_score_threshold:
+    name: Deal Score Threshold
+    description: Minimum computed deal score (votes × recency weight). Set 0 to disable.
+  excluded_keywords:
+    name: Excluded Keywords
+    description: Words that disqualify a deal from matching (e.g. "used", "refurbished").

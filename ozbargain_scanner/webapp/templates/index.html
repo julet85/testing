@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OzBargain Deal Scanner</title>
+  <style>
+    :root {
+      --primary:   #ff6b00;
+      --primary-d: #cc5500;
+      --bg:        #0f0f13;
+      --surface:   #1a1a22;
+      --surface2:  #23232e;
+      --border:    #2e2e3a;
+      --text:      #e8e8f0;
+      --text-dim:  #888899;
+      --green:     #4caf50;
+      --red:       #e53935;
+      --yellow:    #ffc107;
+      --blue:      #42a5f5;
+      --radius:    10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh;
+      padding: 16px;
+    }
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Layout ── */
+    .app-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 24px; padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .app-header svg { flex-shrink: 0; }
+    .app-header h1 { font-size: 1.4rem; font-weight: 700; }
+    .app-header .subtitle { font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px; margin-bottom: 0;
+    }
+    .card-title {
+      font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--text-dim); margin-bottom: 14px;
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    /* ── Status strip ── */
+    .status-strip {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      margin-bottom: 20px;
+    }
+    .stat {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 16px; flex: 1; min-width: 120px;
+    }
+    .stat-value { font-size: 1.6rem; font-weight: 700; line-height: 1; }
+    .stat-label { font-size: 0.75rem; color: var(--text-dim); margin-top: 4px; }
+
+    /* ── Pill badges ── */
+    .badge {
+      display: inline-block; font-size: 0.7rem; font-weight: 600;
+      padding: 2px 8px; border-radius: 99px; white-space: nowrap;
+    }
+    .badge-green  { background: #1b3a1e; color: var(--green); }
+    .badge-orange { background: #3a1f00; color: var(--primary); }
+    .badge-blue   { background: #0d2540; color: var(--blue); }
+    .badge-grey   { background: var(--surface2); color: var(--text-dim); }
+    .badge-red    { background: #3a0e0e; color: var(--red); }
+
+    /* ── Shopping list ── */
+    .item-add {
+      display: flex; gap: 8px; margin-bottom: 14px;
+    }
+    .item-add input {
+      flex: 1; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); padding: 9px 14px; font-size: 0.9rem;
+    }
+    .item-add input:focus { outline: none; border-color: var(--primary); }
+    .btn {
+      cursor: pointer; border: none; border-radius: 8px;
+      padding: 9px 16px; font-size: 0.85rem; font-weight: 600;
+      transition: background 0.15s;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-d); }
+    .btn-ghost {
+      background: var(--surface2); color: var(--text-dim);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: var(--border); color: var(--text); }
+    .btn-danger { background: #3a0e0e; color: var(--red); border: 1px solid #6b1414; }
+    .btn-danger:hover { background: #5a1616; }
+    .btn-sm { padding: 5px 10px; font-size: 0.78rem; }
+
+    .item-list { display: flex; flex-direction: column; gap: 6px; }
+    .item-row {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 12px;
+    }
+    .item-row.inactive { opacity: 0.45; }
+    .item-name { flex: 1; font-size: 0.9rem; }
+    .item-source { font-size: 0.7rem; color: var(--text-dim); }
+    .item-actions { display: flex; gap: 6px; }
+    .keywords-preview {
+      font-size: 0.72rem; color: var(--text-dim);
+      margin-top: 3px; line-height: 1.5;
+    }
+    .kw-tag {
+      display: inline-block; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 4px;
+      padding: 1px 5px; margin: 1px 2px;
+    }
+    .empty-state {
+      text-align: center; padding: 30px; color: var(--text-dim);
+      font-size: 0.9rem;
+    }
+
+    /* ── Scan button + status ── */
+    .scan-controls {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+    }
+    #scan-status-text {
+      font-size: 0.82rem; color: var(--text-dim);
+    }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      display: inline-block; margin-right: 5px;
+    }
+    .dot-green  { background: var(--green); }
+    .dot-orange { background: var(--yellow); animation: pulse 1.2s infinite; }
+    .dot-red    { background: var(--red); }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.3; }
+    }
+
+    /* ── Deal history ── */
+    .deal-list { display: flex; flex-direction: column; gap: 8px; }
+    .deal-card {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px; display: flex; gap: 12px;
+    }
+    .deal-thumb {
+      width: 56px; height: 56px; flex-shrink: 0;
+      border-radius: 6px; object-fit: cover; background: var(--border);
+    }
+    .deal-thumb-placeholder {
+      width: 56px; height: 56px; flex-shrink: 0;
+      border-radius: 6px; background: var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem;
+    }
+    .deal-body { flex: 1; min-width: 0; }
+    .deal-title {
+      font-size: 0.9rem; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .deal-meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+    .deal-time { font-size: 0.72rem; color: var(--text-dim); margin-top: 4px; }
+
+    /* ── Config summary ── */
+    .config-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem;
+    }
+    .config-row:last-child { border-bottom: none; }
+    .config-key { color: var(--text-dim); }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; gap: 0; margin-bottom: 16px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+    .tab-btn {
+      flex: 1; padding: 9px; background: var(--surface2);
+      border: none; cursor: pointer; font-size: 0.82rem; font-weight: 600;
+      color: var(--text-dim); transition: background 0.15s, color 0.15s;
+    }
+    .tab-btn.active { background: var(--primary); color: #fff; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: #1e3a1e; color: var(--green); border: 1px solid var(--green);
+      border-radius: 8px; padding: 10px 18px; font-size: 0.85rem;
+      opacity: 0; transition: opacity 0.25s; pointer-events: none; z-index: 999;
+    }
+    #toast.show { opacity: 1; }
+
+    .full-row { grid-column: 1 / -1; }
+    .section-gap { margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="36" height="36" rx="8" fill="#ff6b00"/>
+    <path d="M8 18C8 12.477 12.477 8 18 8s10 4.477 10 10-4.477 10-10 10S8 23.523 8 18z" stroke="#fff" stroke-width="2"/>
+    <path d="M14 20l3 3 6-7" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M18 11v3M24.5 13.5l-2.1 2.1" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+  </svg>
+  <div>
+    <h1>OzBargain Deal Scanner</h1>
+    <div class="subtitle">Monitors OzBargain for deals on your shopping list</div>
+  </div>
+</div>
+
+<!-- Status strip -->
+<div class="status-strip" id="status-strip">
+  <div class="stat">
+    <div class="stat-value" id="stat-items">{{ items | selectattr('active', 'equalto', 1) | list | length }}</div>
+    <div class="stat-label">Active items</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value" id="stat-deals">{{ status.last_scan_deals_found }}</div>
+    <div class="stat-label">New deals last scan</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">{{ status.check_interval }}m</div>
+    <div class="stat-label">Scan interval</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value" id="stat-history">{{ history | length }}</div>
+    <div class="stat-label">Total deals found</div>
+  </div>
+</div>
+
+<div class="grid">
+
+  <!-- ── Shopping List ── -->
+  <div class="card">
+    <div class="card-title">
+      🛒 Shopping List
+    </div>
+
+    <div class="item-add">
+      <input type="text" id="new-item-input" placeholder="Add item (e.g. Sony WH-1000XM5, air fryer…)" autocomplete="off">
+      <button class="btn btn-primary" onclick="addItem()">Add</button>
+    </div>
+
+    <div id="item-list" class="item-list">
+      {% for item in items %}
+      <div class="item-row {% if not item.active %}inactive{% endif %}" id="item-{{ item.id }}">
+        <div style="flex:1">
+          <div class="item-name">{{ item.name }}</div>
+          <div class="item-source">
+            <span class="badge {% if item.source == 'ha_todo' %}badge-blue{% elif item.source == 'config' %}badge-orange{% elif item.source == 'webhook' %}badge-green{% else %}badge-grey{% endif %}">
+              {{ item.source }}
+            </span>
+            {% if item.active %}<span class="badge badge-green" style="margin-left:4px">active</span>{% else %}<span class="badge badge-grey" style="margin-left:4px">paused</span>{% endif %}
+          </div>
+        </div>
+        <div class="item-actions">
+          <button class="btn btn-ghost btn-sm" onclick="toggleItem({{ item.id }}, this)">
+            {% if item.active %}Pause{% else %}Resume{% endif %}
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="deleteItem({{ item.id }})">✕</button>
+        </div>
+      </div>
+      {% else %}
+      <div class="empty-state" id="empty-list">
+        No items yet. Add items above, or enable HA Shopping List sync in addon options.
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Keyword preview section -->
+    <div class="section-gap">
+      <div class="card-title" style="margin-top:12px; margin-bottom:8px">🔍 Keyword Preview</div>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="kw-preview-input" placeholder="Type an item to preview expanded keywords…"
+          style="flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:8px 12px; font-size:0.85rem;">
+        <button class="btn btn-ghost" onclick="previewKeywords()">Preview</button>
+      </div>
+      <div id="kw-result" class="keywords-preview" style="margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <!-- ── Scanner & Config ── -->
+  <div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">⚡ Scanner Control</div>
+      <div class="scan-controls">
+        <button class="btn btn-primary" id="scan-btn" onclick="triggerScan()">▶ Scan Now</button>
+        <span id="scan-status-text">
+          <span class="dot dot-{% if status.scan_status == 'running' %}orange{% elif status.scan_status == 'error' %}red{% else %}green{% endif %}"></span>
+          {% if status.scan_status == 'running' %}Scanning…
+          {% elif status.scan_status == 'error' %}Error – check logs
+          {% else %}Idle{% endif %}
+        </span>
+      </div>
+      <div style="font-size:0.8rem; color:var(--text-dim); line-height:1.8;">
+        <div>Last scan: <strong>{{ status.last_scan_end or 'Never' }}</strong></div>
+        <div>Next auto-scan: every <strong>{{ status.check_interval }} minutes</strong></div>
+        {% if status.last_error %}
+        <div style="color:var(--red); margin-top:6px;">⚠ {{ status.last_error }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⚙ Current Config</div>
+      <div class="config-row">
+        <span class="config-key">Notify service</span>
+        <span>{{ status.notify_service }}</span>
+      </div>
+      <div class="config-row">
+        <span class="config-key">Smart expansion</span>
+        <span class="badge {% if status.smart_expansion %}badge-green{% else %}badge-grey{% endif %}">
+          {% if status.smart_expansion %}enabled{% else %}disabled{% endif %}
+        </span>
+      </div>
+      <div class="config-row">
+        <span class="config-key">Webhook add URL</span>
+        <span style="font-size:0.75rem; color:var(--blue)">POST /api/webhook/add</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Deal History (full width) ── -->
+  <div class="card full-row">
+    <div class="card-title">📋 Deal History</div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('notified')">Notified</button>
+      <button class="tab-btn" onclick="switchTab('all')">All Matched</button>
+    </div>
+
+    <div id="tab-notified" class="tab-content active">
+      <div class="deal-list">
+        {% set notified = history | selectattr('notified', 'equalto', 1) | list %}
+        {% for deal in notified[:30] %}
+        {{ render_deal(deal) }}
+        {% else %}
+        <div class="empty-state">No notified deals yet. Run a scan to get started.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div id="tab-all" class="tab-content">
+      <div class="deal-list">
+        {% for deal in history[:50] %}
+        {{ render_deal(deal) }}
+        {% else %}
+        <div class="empty-state">No deal history yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ── Jinja macro (defined inline) ── -->
+{% macro render_deal(deal) %}
+<div class="deal-card">
+  {% if deal.thumbnail %}
+  <img class="deal-thumb" src="{{ deal.thumbnail }}" alt="" onerror="this.style.display='none'">
+  {% else %}
+  <div class="deal-thumb-placeholder">🏷</div>
+  {% endif %}
+  <div class="deal-body">
+    <div class="deal-title">
+      <a href="{{ deal.url }}" target="_blank" rel="noopener">{{ deal.title }}</a>
+    </div>
+    <div class="deal-meta">
+      {% if deal.price %}<span class="badge badge-green">{{ deal.price }}</span>{% endif %}
+      {% if deal.discount %}<span class="badge badge-orange">{{ deal.discount | int }}% off</span>{% endif %}
+      <span class="badge badge-grey">👍 {{ deal.upvotes }}</span>
+      {% if deal.category %}<span class="badge badge-blue">{{ deal.category }}</span>{% endif %}
+      {% for item in deal.matched_items %}<span class="badge badge-orange">{{ item }}</span>{% endfor %}
+    </div>
+    <div class="deal-time">{{ deal.discovered_at[:19].replace('T',' ') }} UTC</div>
+  </div>
+</div>
+{% endmacro %}
+
+<script>
+  const BASE = "{{ base_url }}";
+
+  function api(path, opts = {}) {
+    return fetch(BASE + path, opts).then(r => r.json());
+  }
+
+  function toast(msg, ok = true) {
+    const el = document.getElementById("toast");
+    el.textContent = msg;
+    el.style.background = ok ? "#1e3a1e" : "#3a0e0e";
+    el.style.color = ok ? "var(--green)" : "var(--red)";
+    el.style.borderColor = ok ? "var(--green)" : "var(--red)";
+    el.classList.add("show");
+    setTimeout(() => el.classList.remove("show"), 3000);
+  }
+
+  /* ── Shopping list ── */
+
+  function addItem() {
+    const inp = document.getElementById("new-item-input");
+    const name = inp.value.trim();
+    if (!name) return;
+    api("/api/items", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({name})
+    }).then(data => {
+      if (data.error) { toast(data.error, false); return; }
+      toast("Added: " + name);
+      inp.value = "";
+      rebuildList(data.items);
+    }).catch(() => toast("Request failed", false));
+  }
+
+  function deleteItem(id) {
+    api("/api/items/" + id, {method: "DELETE"}).then(() => {
+      const el = document.getElementById("item-" + id);
+      if (el) el.remove();
+      updateStatItems();
+      toast("Item removed");
+    });
+  }
+
+  function toggleItem(id, btn) {
+    api("/api/items/" + id + "/toggle", {method: "POST"}).then(data => {
+      const row = document.getElementById("item-" + id);
+      if (row) {
+        row.classList.toggle("inactive", !data.active);
+        btn.textContent = data.active ? "Pause" : "Resume";
+      }
+      updateStatItems();
+    });
+  }
+
+  function rebuildList(items) {
+    const list = document.getElementById("item-list");
+    if (!items.length) {
+      list.innerHTML = '<div class="empty-state">No items yet.</div>';
+      return;
+    }
+    list.innerHTML = items.map(item => `
+      <div class="item-row ${item.active ? '' : 'inactive'}" id="item-${item.id}">
+        <div style="flex:1">
+          <div class="item-name">${esc(item.name)}</div>
+          <div class="item-source">
+            <span class="badge ${sourceBadge(item.source)}">${esc(item.source)}</span>
+            <span class="badge ${item.active ? 'badge-green' : 'badge-grey'}" style="margin-left:4px">${item.active ? 'active' : 'paused'}</span>
+          </div>
+        </div>
+        <div class="item-actions">
+          <button class="btn btn-ghost btn-sm" onclick="toggleItem(${item.id}, this)">${item.active ? 'Pause' : 'Resume'}</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteItem(${item.id})">✕</button>
+        </div>
+      </div>`).join("");
+    updateStatItems();
+  }
+
+  function sourceBadge(s) {
+    return {ha_todo: "badge-blue", config: "badge-orange", webhook: "badge-green"}[s] || "badge-grey";
+  }
+
+  function updateStatItems() {
+    const active = document.querySelectorAll(".item-row:not(.inactive)").length;
+    document.getElementById("stat-items").textContent = active;
+  }
+
+  document.getElementById("new-item-input").addEventListener("keydown", e => {
+    if (e.key === "Enter") addItem();
+  });
+
+  /* ── Keyword preview ── */
+
+  function previewKeywords() {
+    const val = document.getElementById("kw-preview-input").value.trim();
+    if (!val) return;
+    api("/api/keywords/" + encodeURIComponent(val)).then(data => {
+      const div = document.getElementById("kw-result");
+      div.innerHTML = "<strong>Expanded keywords:</strong><br>" +
+        data.keywords.map(k => `<span class="kw-tag">${esc(k)}</span>`).join(" ");
+    });
+  }
+
+  document.getElementById("kw-preview-input").addEventListener("keydown", e => {
+    if (e.key === "Enter") previewKeywords();
+  });
+
+  /* ── Scanner ── */
+
+  function triggerScan() {
+    const btn = document.getElementById("scan-btn");
+    btn.disabled = true; btn.textContent = "⏳ Scanning…";
+    api("/api/scan", {method: "POST"}).then(() => {
+      toast("Scan started!");
+      pollStatus();
+    }).catch(() => {
+      toast("Failed to start scan", false);
+      btn.disabled = false; btn.textContent = "▶ Scan Now";
+    });
+  }
+
+  function pollStatus() {
+    const btn = document.getElementById("scan-btn");
+    const statusEl = document.getElementById("scan-status-text");
+    const iv = setInterval(() => {
+      api("/api/status").then(s => {
+        if (s.scan_status !== "running") {
+          clearInterval(iv);
+          btn.disabled = false; btn.textContent = "▶ Scan Now";
+          document.getElementById("stat-deals").textContent = s.last_scan_deals_found;
+          statusEl.innerHTML = `<span class="dot dot-green"></span>Idle`;
+          toast(`Scan complete – ${s.last_scan_deals_found} new deal(s) found`);
+        } else {
+          statusEl.innerHTML = `<span class="dot dot-orange"></span>Scanning…`;
+        }
+      });
+    }, 3000);
+  }
+
+  /* ── Tabs ── */
+
+  function switchTab(name) {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+    document.getElementById("tab-" + name).classList.add("active");
+    event.target.classList.add("active");
+  }
+
+  /* ── Helpers ── */
+
+  function esc(s) {
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+</script>
+</body>
+</html>
